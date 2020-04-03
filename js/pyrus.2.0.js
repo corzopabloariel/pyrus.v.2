@@ -163,7 +163,7 @@ class Pyrus {
                 continue;
             if(this.#specification[property].VISIBILITY != "TP_VISIBLE" && this.#specification[property].VISIBILITY != "TP_VISIBLE_TABLE" )
                 continue;
-            class_ = "";
+            class_ = null;
             if(this.#specification[property].CLASS !== undefined)
                 class_ = this.#specification[property].CLASS
             this.#form[property] = class_;
@@ -264,23 +264,45 @@ class Pyrus {
     /**
      * @property id_container (string) ID del contenedor donde se construirá la tabla
      */
-    #getForm = (id_container, name, multiple) => {
+    #buildForm = (id_container, name, multiple) => {
         const form_container = id(id_container);
-        for(let property in this.#specification)
+        for(let property in this.#form)
         {
             let names = this.#names(property, name, multiple);
-            let element = this.#suitableItem(property, names);
+            console.log(names);
+            //let element = this.#suitableItem(this.#specification[property], names);
         }
     };
-    form = (id_container = "form-container", name = null, multiple = null) => {
+    form = (id_container = "form-container", name = null, multiple = false) => {
         this.#ids.form = `form-container-${this.#entity}`;
-        this.#getForm(id_container, name, multiple);
+        this.#buildForm(id_container, name, multiple);
     };
     /**
-     * @property element (json) Genera los nombres usados en los elementos del formulario
+     * @property property Nombre usado en el ENTITY como parámetro de la entidad
+     * @property name @type string Nombre que se le puede adicionar al elemento para que el formulario sea único
+     * @property multiple @type boolean TRUE: agrega campo múltiple
      * @returns array
      */
-    #names = (element, name, multiple) => {};
+    #names = (property, name, multiple) => {
+        let names = {name:null, id:null};
+        names.name = `${this.#entity}_${property}`;
+        names.id = `${this.#entity}_${property}`;
+
+        if(name !== null)
+        {
+            names.name += `_${name}`;
+            names.id += `_${name}`;
+        }
+        if(multiple)
+        {
+            if(window[`${this.#entity}_${property}`] === undefined)
+                window[`${this.#entity}_${property}`] = 0;
+            window[`${this.#entity}_${property}`] ++;
+            names.name += `[]`;
+            names.id += `_${window[`${this.#entity}_${property}`]}`;
+        }
+        return names;
+    };
     /**
      * @property element (json) Elemento de la entidad
      * @property names (json) Conjunto de nombres
@@ -316,4 +338,11 @@ class Pyrus {
         else
             return this.#inputHidden(element, names);
     };
+    /** ITEMS */
+    #input = (element, names, type) => {};
+    #inputDate = (element, names) => {};
+    #inputHidden = (element, names) => {};
+    #textarea = (element, names) => {};
+    #image = (element, names) => {};
+    #select = (element, names) => {};
 };
