@@ -25,6 +25,8 @@ class Pyrus {
     #simple         = null;
     #empty          = null;
     #column         = null;
+    #form           = null;
+    #ids            = {table: null};
     /* /Property */
 
     constructor(e = null, elements = null) {
@@ -50,6 +52,7 @@ class Pyrus {
         this.#getSimple();
         this.#getEmpty();
         this.#getColumn();
+        this.#getForm();
         console.timeEnd("Load");
     }
 
@@ -64,6 +67,9 @@ class Pyrus {
     }
     get empty() {
         return this.#empty;
+    }
+    get ids() {
+        return this.#ids;
     }
 
     /**
@@ -146,12 +152,30 @@ class Pyrus {
     };
     /**
      * @returns null
+     * @description Obtenemos CSS necesarios para el formulario
+     */
+    #getForm = () => {
+        let class_;
+        this.#form = {};
+        for(let property in this.#specification)
+        {
+            if(this.#specification[property].TYPE == "TP_PK")
+                continue;
+            if(this.#specification[property].VISIBILITY != "TP_VISIBLE" && this.#specification[property].VISIBILITY != "TP_VISIBLE_TABLE" )
+                continue;
+            class_ = "";
+            if(this.#specification[property].CLASS !== undefined)
+                class_ = this.#specification[property].CLASS
+            this.#form[property] = class_;
+        }
+    }
+    /**
+     * @returns null
      * @description Construye ARRAY de elementos de la cabecera de la tabla
      */
     #getColumn = () => {
-        let width_ = "auto";
-        let class_ = "";
-        let name_ = "";
+        let width_;
+        let name_;
         this.#column = [];
         if(__ENTITY[this.#entity].COLUMN === undefined)
         {
@@ -162,7 +186,6 @@ class Pyrus {
                 if(this.#specification[property].VISIBILITY != "TP_VISIBLE" && this.#specification[property].VISIBILITY != "TP_VISIBLE_TABLE" )
                     continue;
                 width_ = "auto";
-                class_ = "";
                 name_ = property.toUpperCase();
                 if(this.#specification[property].NAME !== undefined)
                     name_ = this.#specification[property].NAME.toUpperCase();
@@ -172,9 +195,7 @@ class Pyrus {
                     if(this.#specification[property].TABLE !== undefined)
                         width_ = this.#specification[property].TABLE;
                 }
-                if(this.#specification[property].CLASS !== undefined)
-                    class_ = this.#specification[property].CLASS
-                this.#column.push({ NAME: name_, COLUMN: property, WIDTH: width_, CLASS: class_});
+                this.#column.push({ NAME: name_, COLUMN: property, WIDTH: width_});
             }
         }
         else
@@ -188,13 +209,10 @@ class Pyrus {
                 if(this.#specification[property].VISIBILITY != "TP_VISIBLE" && this.#specification[property].VISIBILITY != "TP_VISIBLE_TABLE" )
                     continue;
                 width_ = __ENTITY[this.#entity].COLUMN[property].WIDTH === undefined ? "auto" : __ENTITY[this.#entity].COLUMN[property].WIDTH;
-                class_ = "";
                 name_ = property.toUpperCase();
                 if(this.#specification[property].NAME !== undefined)
                     name_ = this.#specification[property].NAME.toUpperCase();
-                if(this.#specification[property].CLASS !== undefined)
-                    class_ = this.#specification[property].CLASS
-                this.#column.push({ NAME: name_, COLUMN: property, WIDTH: width_, CLASS: class_});
+                this.#column.push({ NAME: name_, COLUMN: property, WIDTH: width_});
             }
         }
     };
@@ -203,23 +221,32 @@ class Pyrus {
      */
     table = (id_container = "table-container") => {
         const table_container = id(id_container);
+        this.#ids.table = `table-container-${this.#entity}`;
 
         let element = document.createElement("TABLE");
-        element.setAttribute("id", `table-container-${this.#entity}`);
+        element.setAttribute("id", this.#ids.table);
         let element_head = element.createTHead();
         let element_head_tr = document.createElement("TR");
         let element_body = document.createElement("TBODY");
-        element.classList.add("table");
+        element.classList.add(...["table", "table-striped", "table-hover", "table-borderless", "mb-0"]);
         element_head.classList.add("thead-dark");
         element_head.appendChild(element_head_tr);
         element.appendChild(element_head);
+        element.appendChild(element_body);
         table_container.appendChild(element);
 
         for(let column of this.#column)
         {
             let th = document.createElement("TH");
             th.textContent = column.NAME;
+            th.setAttribute("style", `width:${column.WIDTH};`);
+            th.classList.add("text-center");
             element_head_tr.appendChild(th);
         }
+        let th = document.createElement("TH");
+        th.textContent = "-";
+        th.setAttribute("style", `width:100px;`);
+        th.classList.add("text-center");
+        element_head_tr.appendChild(th);
     };
 };
