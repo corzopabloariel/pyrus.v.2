@@ -219,18 +219,18 @@ class Pyrus {
     /**
      * @property id_container (string) ID del contenedor donde se construirá la tabla
      */
-    table = (id_container = "table-container") => {
+    #getTable = id_container => {
         const table_container = id(id_container);
-        this.#ids.table = `table-container-${this.#entity}`;
-
         let element = document.createElement("TABLE");
         element.setAttribute("id", this.#ids.table);
         let element_head = element.createTHead();
         let element_head_tr = document.createElement("TR");
         let element_body = document.createElement("TBODY");
+        let element_body_tr = document.createElement("TR");
         element.classList.add(...["table", "table-striped", "table-hover", "table-borderless", "mb-0"]);
         element_head.classList.add("thead-dark");
         element_head.appendChild(element_head_tr);
+        element_body.appendChild(element_body_tr);
         element.appendChild(element_head);
         element.appendChild(element_body);
         table_container.appendChild(element);
@@ -248,5 +248,72 @@ class Pyrus {
         th.setAttribute("style", `width:100px;`);
         th.classList.add("text-center");
         element_head_tr.appendChild(th);
+
+        let td = document.createElement("TD");
+        td.setAttribute("colspan", this.#column.length + 1);
+        td.textContent = "- Sin registros -";
+        td.classList.add("text-center");
+        element_body_tr.appendChild(td);
+
+        window.TableTrFirst = element_body_tr;
+    };
+    table = (id_container = "table-container") => {
+        this.#ids.table = `table-container-${this.#entity}`;
+        this.#getTable(id_container);
+    };
+    /**
+     * @property id_container (string) ID del contenedor donde se construirá la tabla
+     */
+    #getForm = (id_container, name, multiple) => {
+        const form_container = id(id_container);
+        for(let property in this.#specification)
+        {
+            let names = this.#names(property, name, multiple);
+            let element = this.#suitableItem(property, names);
+        }
+    };
+    form = (id_container = "form-container", name = null, multiple = null) => {
+        this.#ids.form = `form-container-${this.#entity}`;
+        this.#getForm(id_container, name, multiple);
+    };
+    /**
+     * @property element (json) Genera los nombres usados en los elementos del formulario
+     * @returns array
+     */
+    #names = (element, name, multiple) => {};
+    /**
+     * @property element (json) Elemento de la entidad
+     * @property names (json) Conjunto de nombres
+     * @returns object tipo form
+    */
+    #suitableItem = (element, names) => {
+        if(element.VISIBILITY == 'TP_VISIBLE' || element.VISIBILITY == 'TP_VISIBLE_FORM' )
+        {
+            switch(element.TYPE)
+            {
+                case "TP_STRING":
+                    return this.#input(element, names, "text");
+                case "TP_LINK":
+                    return this.#input(element, names, "url");
+                case "TP_PHONE":
+                    return this.#input(element, names, "phone");
+                case "TP_EMAIL":
+                    return this.#input(element, names, "email");
+                case "TP_DATE":
+                    return this.#inputDate(element, names);
+                case "TP_TEXT":
+                    return this.#textarea(element, names);
+                case "TP_IMAGE":
+                    return this.#image(element, names);
+                case "TP_PASSWORD":
+                    return this.#input(element, names, "password");
+                case "TP_SELECT":
+                    return this.#select(element, names);
+                default:
+                    return this.#input(element, names, "text");
+            }
+        }
+        else
+            return this.#inputHidden(element, names);
     };
 };

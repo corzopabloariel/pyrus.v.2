@@ -97,10 +97,10 @@ const __ENTITY = {
                 WIDTH: "50px"
             },
             text: {
-                WIDTH: "250px"
+                WIDTH: "auto"
             },
             image: {
-                WIDTH: "auto"
+                WIDTH: "250px"
             }
         },
         FORM: [
