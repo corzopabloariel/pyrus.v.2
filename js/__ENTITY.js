@@ -29,6 +29,7 @@ let property_order = {
     ELEMENT: [__types.string,__visibilities.visible],
     MAXLENGTH: 3,
     MINLENGTH: 0,
+    REQUIRED: true,
     CLASS: `text-uppercase text-center ${__class}`,
     NAME: "orden",
     DEFAULT: null
@@ -111,8 +112,10 @@ const __ENTITY = {
                 '<div class="col-12 col-md-9">/text/</div><div class="col-12 col-md-3">/order/</div>': ['order', 'text']
             },
         ],
-        FUNCIONES: {
-            image: {onchange:{F:"readURL(this,'/image/')",C:"image"}}
+        FUNCTION: {
+            image: {
+                onchange:{F:"readURL(this,'/image/')",C:"image"}
+            }
         },
         EDITOR: {
             text: {

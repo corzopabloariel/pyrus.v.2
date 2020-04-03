@@ -155,7 +155,6 @@ class Pyrus {
      * @description Obtenemos CSS necesarios para el formulario
      */
     #getForm = () => {
-        let class_;
         this.#form = {};
         for(let property in this.#specification)
         {
@@ -163,10 +162,22 @@ class Pyrus {
                 continue;
             if(this.#specification[property].VISIBILITY != "TP_VISIBLE" && this.#specification[property].VISIBILITY != "TP_VISIBLE_TABLE" )
                 continue;
-            class_ = null;
+            this.#form[property] = {};
+            this.#form[property].NAME = this.#specification[property].NAME === undefined ? property : this.#specification[property].NAME;
+            this.#form[property].TYPE = this.#specification[property].TYPE;
+            this.#form[property].VISIBILITY = this.#specification[property].VISIBILITY;
+            this.#form[property].REQUIRED = this.#specification[property].REQUIRED === undefined ? false : true;
+            this.#form[property].DISABLED = this.#specification[property].DISABLED === undefined ? false : true;
+            this.#form[property].READONLY = this.#specification[property].READONLY === undefined ? false : true;
+            this.#form[property].LABEL = this.#specification[property].LABEL === undefined ? false : true;
+
             if(this.#specification[property].CLASS !== undefined)
-                class_ = this.#specification[property].CLASS
-            this.#form[property] = class_;
+                this.#form[property].CLASS = this.#specification[property].CLASS;
+            if(this.#object.FUNCTION !== undefined)
+            {
+                if(this.#object.FUNCTION[property] !== undefined)
+                    this.#form[property].FUNCTION = this.#object.FUNCTION[property];
+            }
         }
     }
     /**
@@ -177,7 +188,7 @@ class Pyrus {
         let width_;
         let name_;
         this.#column = [];
-        if(__ENTITY[this.#entity].COLUMN === undefined)
+        if(this.#object.COLUMN === undefined)
         {
             for(let property in this.#specification)
             {
@@ -200,7 +211,7 @@ class Pyrus {
         }
         else
         {
-            for(let property in __ENTITY[this.#entity].COLUMN)
+            for(let property in this.#object.COLUMN)
             {
                 if(this.#specification[property] === undefined)
                     continue;
@@ -208,7 +219,7 @@ class Pyrus {
                     continue;
                 if(this.#specification[property].VISIBILITY != "TP_VISIBLE" && this.#specification[property].VISIBILITY != "TP_VISIBLE_TABLE" )
                     continue;
-                width_ = __ENTITY[this.#entity].COLUMN[property].WIDTH === undefined ? "auto" : __ENTITY[this.#entity].COLUMN[property].WIDTH;
+                width_ = this.#object.COLUMN[property].WIDTH === undefined ? "auto" : this.#object.COLUMN[property].WIDTH;
                 name_ = property.toUpperCase();
                 if(this.#specification[property].NAME !== undefined)
                     name_ = this.#specification[property].NAME.toUpperCase();
@@ -269,8 +280,8 @@ class Pyrus {
         for(let property in this.#form)
         {
             let names = this.#names(property, name, multiple);
-            console.log(names);
-            //let element = this.#suitableItem(this.#specification[property], names);
+            let element = this.#suitableItem(this.#form[property], names);
+            console.log(element);
         }
     };
     form = (id_container = "form-container", name = null, multiple = false) => {
@@ -305,6 +316,7 @@ class Pyrus {
     };
     /**
      * @property element (json) Elemento de la entidad
+     * @property form (json) Elemento necesarios para el FORM
      * @property names (json) Conjunto de nombres
      * @returns object tipo form
     */
@@ -339,10 +351,59 @@ class Pyrus {
             return this.#inputHidden(element, names);
     };
     /** ITEMS */
-    #input = (element, names, type) => {};
-    #inputDate = (element, names) => {};
-    #inputHidden = (element, names) => {};
-    #textarea = (element, names) => {};
-    #image = (element, names) => {};
-    #select = (element, names) => {};
+    #input = (element, names, type) => {
+        let object = document.createElement("INPUT");
+        object.setAttribute("type", type);
+        if(element.CLASS === undefined)
+            element.CLASS = "form-control";
+        else
+            element.CLASS += " form-control";
+        switch ( type ) {
+            case "number":
+                element.CLASS += " input-numero text-right";
+            break;
+            case "password":
+                element.CLASS += " input-password";
+            break;
+            case "text":
+                element.CLASS += " input-text";
+            break;
+            case "date":
+                element.CLASS += " input-date";
+                break;
+            case "file":
+                element.CLASS += " custom-file-input invalid";
+                break;
+        }
+        if(element.CLASS != null)
+            object.classList.add(...element.CLASS.split(" "));
+        if(element.REQUIRED)
+            object.required = true;
+        if(element.DISABLED)
+            object.disabled = true;
+        if(element.READONLY)
+            object.readOnly = true;
+        object.placeholder = element.NAME;
+        return object;
+    };
+    #inputDate = (element, form, names) => {
+
+        return null;
+    };
+    #inputHidden = (element, form, names) => {
+
+        return null;
+    };
+    #textarea = (element, form, names) => {
+
+        return null;
+    };
+    #image = (element, form, names) => {
+
+        return null;
+    };
+    #select = (element, form, names) => {
+
+        return null;
+    };
 };
