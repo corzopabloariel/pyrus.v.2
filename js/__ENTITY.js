@@ -2,6 +2,7 @@ const __types = {
     string: "TP_STRING",
     text: "TP_TEXT",
     image: "TP_IMAGE",
+    date: "TP_DATE",
     pk: "TP_PK"
 };
 const __visibilities = {
@@ -28,11 +29,12 @@ let property_image = {
 let property_order = {
     ELEMENT: [__types.string,__visibilities.visible],
     MAXLENGTH: 3,
-    MINLENGTH: 0,
     REQUIRED: true,
+    LABEL: true,
     CLASS: `text-uppercase text-center ${__class}`,
     NAME: "orden",
-    DEFAULT: null
+    DEFAULT: null,
+    HELP: "Orden alfanúmerico"
 };
 let property_id = {
     ELEMENT: [__types.pk,__visibilities.hidden],
@@ -91,11 +93,20 @@ const __ENTITY = {
                 EDITOR: 1,
                 FIELDSET: 1,
                 NAME: "texto"
+            },
+            date: {
+                ... property_common,
+                ELEMENT: [__types.date,__visibilities.visible],
+                NAME: "fecha",
+                LABEL: true
             }
         },
         COLUMN: {
             order: {
                 WIDTH: "50px"
+            },
+            date: {
+                WIDTH: "100px"
             },
             text: {
                 WIDTH: "auto"
@@ -106,10 +117,13 @@ const __ENTITY = {
         },
         FORM: [
             {
-                '/section/<div class="col-12">/image/</div>': ['section', 'image']
+                section: "",
+                image: "col-12 col-sm-7",
+                date: "col-12 col-sm-5"
             },
             {
-                '<div class="col-12 col-md-9">/text/</div><div class="col-12 col-md-3">/order/</div>': ['order', 'text']
+                text: "col-12 col-sm-7 col-md-9 col-xl-10",
+                order: "col-12 col-sm-5 col-md-3 col-xl-2"
             },
         ],
         FUNCTION: {

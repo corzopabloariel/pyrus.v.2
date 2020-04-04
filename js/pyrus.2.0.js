@@ -160,19 +160,12 @@ class Pyrus {
         {
             if(this.#specification[property].TYPE == "TP_PK")
                 continue;
-            if(this.#specification[property].VISIBILITY != "TP_VISIBLE" && this.#specification[property].VISIBILITY != "TP_VISIBLE_TABLE" )
+            if(this.#specification[property].VISIBILITY == "TP_VISIBLE_TABLE" )
                 continue;
-            this.#form[property] = {};
-            this.#form[property].NAME = this.#specification[property].NAME === undefined ? property : this.#specification[property].NAME;
-            this.#form[property].TYPE = this.#specification[property].TYPE;
-            this.#form[property].VISIBILITY = this.#specification[property].VISIBILITY;
-            this.#form[property].REQUIRED = this.#specification[property].REQUIRED === undefined ? false : true;
-            this.#form[property].DISABLED = this.#specification[property].DISABLED === undefined ? false : true;
-            this.#form[property].READONLY = this.#specification[property].READONLY === undefined ? false : true;
-            this.#form[property].LABEL = this.#specification[property].LABEL === undefined ? false : true;
-
-            if(this.#specification[property].CLASS !== undefined)
-                this.#form[property].CLASS = this.#specification[property].CLASS;
+            this.#form[property] = {
+                ...this.#specification[property],
+                NAME: this.#specification[property].NAME.toLocaleUpperCase()
+            }
             if(this.#object.FUNCTION !== undefined)
             {
                 if(this.#object.FUNCTION[property] !== undefined)
@@ -238,7 +231,7 @@ class Pyrus {
         let element_head_tr = document.createElement("TR");
         let element_body = document.createElement("TBODY");
         let element_body_tr = document.createElement("TR");
-        element.classList.add(...["table", "table-striped", "table-hover", "table-borderless", "mb-0"]);
+        element.classList.add("table", "table-striped", "table-hover", "table-borderless", "mb-0");
         element_head.classList.add("thead-dark");
         element_head.appendChild(element_head_tr);
         element_body.appendChild(element_body_tr);
@@ -277,11 +270,47 @@ class Pyrus {
      */
     #buildForm = (id_container, name, multiple) => {
         const form_container = id(id_container);
-        for(let property in this.#form)
+        const form = this.#object.FORM === undefined ? null : this.#object.FORM;
+        if(form === null)
         {
-            let names = this.#names(property, name, multiple);
-            let element = this.#suitableItem(this.#form[property], names);
-            console.log(element);
+            for(let property in this.#form)
+            {
+                let div_row = document.createElement("DIV");
+                div_row.classList.add("row","justify-content-center");
+                let div_col = document.createElement("DIV");
+                div_col.classList.add("col-12");
+                let names = this.#names(property, name, multiple);
+                let element = this.#suitableItem(this.#form[property], names);
+                if(!!element)
+                    div_col.appendChild(element)
+                div_row.appendChild(div_col);
+                form_container.appendChild(div_row);
+            }
+        }
+        else
+        {
+            for(let row of form)
+            {
+                let div_row = document.createElement("DIV");
+                div_row.classList.add("row","justify-content-center");
+                for(let property in row)
+                {
+                    if(this.#form[property] === undefined)
+                    {
+                        console.error(`Property "${property}" not found`);
+                        break;
+                    }
+                    let div_col = document.createElement("DIV");
+                    if(!!row[property])
+                        div_col.classList.add(...row[property].split(" "));
+                    let names = this.#names(property, name, multiple);
+                    let element = this.#suitableItem(this.#form[property], names);
+                    if(!!element)
+                        div_col.appendChild(element)
+                    div_row.appendChild(div_col);
+                }
+                form_container.appendChild(div_row);
+            }
         }
     };
     form = (id_container = "form-container", name = null, multiple = false) => {
@@ -298,7 +327,6 @@ class Pyrus {
         let names = {name:null, id:null};
         names.name = `${this.#entity}_${property}`;
         names.id = `${this.#entity}_${property}`;
-
         if(name !== null)
         {
             names.name += `_${name}`;
@@ -353,6 +381,8 @@ class Pyrus {
     /** ITEMS */
     #input = (element, names, type) => {
         let object = document.createElement("INPUT");
+        let container = document.createElement("DIV");
+        container.classList.add("form-group");
         object.setAttribute("type", type);
         if(element.CLASS === undefined)
             element.CLASS = "form-control";
@@ -360,21 +390,32 @@ class Pyrus {
             element.CLASS += " form-control";
         switch ( type ) {
             case "number":
+                object.setAttribute("type", "text");
                 element.CLASS += " input-numero text-right";
+                element.PATTERN = "[0-9]";
             break;
             case "password":
+                //(?=.*\d)(?=.*[a-z])(?=.*[A-Z])
                 element.CLASS += " input-password";
+                element.PATTERN = ".{6,}";
             break;
             case "text":
                 element.CLASS += " input-text";
+                element.PATTERN = "[A-Za-z]";
             break;
-            case "date":
-                element.CLASS += " input-date";
+            case "email":
+                element.CLASS += " input-email";
+                element.PATTERN = "[a-z0-9._%+-]+@[a-z0-9.-]+\.[a-z]{2,}";
                 break;
-            case "file":
+            case "url":
                 element.CLASS += " custom-file-input invalid";
+                element.PATTERN = "https?://.+";
                 break;
+            default:
+                element.CLASS += " input-text";
+                element.PATTERN = "[A-Za-z]";
         }
+        object.setAttribute("pattern",element.PATTERN);
         if(element.CLASS != null)
             object.classList.add(...element.CLASS.split(" "));
         if(element.REQUIRED)
@@ -383,26 +424,154 @@ class Pyrus {
             object.disabled = true;
         if(element.READONLY)
             object.readOnly = true;
-        object.placeholder = element.NAME;
+        object.placeholder = element.PLACEHOLDER !== undefined ? element.PLACEHOLDER : element.NAME;
+        object.setAttribute("aria-label", element.NAME);
+        object.setAttribute("name", names.name);
+        object.setAttribute("id", names.id);
+        if(element.LABEL)
+        {
+            let label = document.createElement("LABEL");
+            label.htmlFor = names.id;
+            label.textContent = element.NAME;
+            container.appendChild(label);
+        }
+        container.appendChild(object);
+        if(element.HELP !== undefined)
+        {
+            let small = document.createElement("SMALL");
+            small.classList.add("form-text","text-muted");
+            small.textContent = element.HELP;
+            container.appendChild(small);
+        }
+        return container;
+    };
+    #inputDate = (element, names) => {
+        let object = document.createElement("INPUT");
+        let container = document.createElement("DIV");
+        container.classList.add("form-group");
+        if(element.CLASS === undefined)
+            element.CLASS = "form-control text-right";
+        else
+            element.CLASS += " form-control text-right";
+        if(element.CLASS != null)
+            object.classList.add(...element.CLASS.split(" "));
+        if(element.REQUIRED)
+            object.required = true;
+        if(element.DISABLED)
+            object.disabled = true;
+        if(element.READONLY)
+            object.readOnly = true;
+        object.setAttribute("type", "date");
+        object.setAttribute("aria-label", element.NAME);
+        object.setAttribute("name", names.name);
+        object.setAttribute("id", names.id);
+        if(element.LABEL)
+        {
+            let label = document.createElement("LABEL");
+            label.htmlFor = names.id;
+            label.textContent = element.NAME;
+            container.appendChild(label);
+        }
+        container.appendChild(object);
+        if(element.HELP !== undefined)
+        {
+            let small = document.createElement("SMALL");
+            small.classList.add("form-text","text-muted");
+            small.textContent = element.HELP;
+            q.appendChild(small);
+        }
+        return container;
+    };
+    #inputHidden = (element, names) => {
+        let object = document.createElement("INPUT");
+        object.setAttribute("type", "hidden");
+        object.setAttribute("name", names.name);
+        object.setAttribute("id", names.id);
         return object;
     };
-    #inputDate = (element, form, names) => {
-
-        return null;
+    #textarea = (element, names) => {
+        let object = document.createElement("TEXTAREA");
+        let container = document.createElement("DIV");
+        container.classList.add("form-group");
+        if(element.CLASS === undefined)
+            element.CLASS = "form-control";
+        else
+            element.CLASS += " form-control";
+        if(element.CLASS != null)
+            object.classList.add(...element.CLASS.split(" "));
+        if(element.REQUIRED)
+            object.required = true;
+        if(element.DISABLED)
+            object.disabled = true;
+        if(element.READONLY)
+            object.readOnly = true;
+        object.placeholder = element.PLACEHOLDER !== undefined ? element.PLACEHOLDER : element.NAME;
+        object.setAttribute("aria-label", element.NAME);
+        object.setAttribute("name", names.name);
+        object.setAttribute("id", names.id);
+        if(element.LABEL)
+        {
+            let label = document.createElement("LABEL");
+            label.htmlFor = names.id;
+            label.textContent = element.NAME;
+            container.appendChild(label);
+        }
+        container.appendChild(object);
+        if(element.HELP !== undefined)
+        {
+            let small = document.createElement("SMALL");
+            small.classList.add("form-text","text-muted");
+            small.textContent = element.HELP;
+            container.appendChild(small);
+        }
+        return container;
     };
-    #inputHidden = (element, form, names) => {
+    #image = (element, names) => {
+        let container = document.createElement("DIV");
+        let images = container.cloneNode(true);
+        let object = document.createElement("INPUT");
+        let input = object.cloneNode(true);
+        let label = document.createElement("LABEL");
+        let svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+        let rect = document.createElementNS("http://www.w3.org/2000/svg", "rect");
+        let img = document.createElement("IMAGE");
+        img.setAttribute("x","0");
+        img.setAttribute("y","0");
+        img.setAttribute("width","100%");
+        img.setAttribute("xlink:href","");
+        rect.setAttribute("fill", "#868e96");
+        rect.setAttribute("height", "170");
+        rect.classList.add("w-100");
+        svg.setAttribute("aria-label", "Placeholder: Imagen");
+        svg.setAttribute("height", "170");
+        svg.classList.add("w-100");
+        svg.appendChild(img);
+        svg.appendChild(rect);
 
-        return null;
-    };
-    #textarea = (element, form, names) => {
+        images.classList.add("d-flex", "flex-column");
+        container.classList.add("custom-file");
+        label.setAttribute("data-invalid",element.NAME);
+        label.classList.add("custom-file-label", "mb-0", "text-truncate");
+        label.htmlFor = names.id;
+        label.setAttribute("data-invalid",`${element.NAME} ${element.INVALID}`);
+        label.setAttribute("data-valid",`${element.NAME} ${element.VALID}`);
+        label.setAttribute("data-browse",`${element.BROWSER}`);
+        input.setAttribute("type", "hidden");
+        input.classList.add("imgURL");
+        input.setAttribute("name", `hidden_${names.name}`);
+        input.setAttribute("id", `hidden_${names.id}`);
+        object.setAttribute("type", "file");
+        object.setAttribute("name", names.name);
+        object.setAttribute("id", names.id);
+        container.appendChild(object);
+        container.appendChild(label);
+        container.appendChild(input);
 
-        return null;
+        images.appendChild(svg);
+        images.appendChild(container);
+        return images;
     };
-    #image = (element, form, names) => {
-
-        return null;
-    };
-    #select = (element, form, names) => {
+    #select = (element, names) => {
 
         return null;
     };
