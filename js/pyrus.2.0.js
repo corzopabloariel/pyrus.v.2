@@ -10,6 +10,7 @@
  * @requires
  * AXIOS: todos los request son por medio de axios
  * CKEDITOR: para establecer editores ricos en los formularios
+ * SELECTPICKER: 
  * -------------------------- /
  * @version 2.0
  * @author Pablo Corzo (hola@pablocorzo.dev)
@@ -20,7 +21,7 @@ class Pyrus {
     #entity         = null;
     #name           = null;
     #specification  = null;
-    #table          = null;
+    #tableDB        = null;
     #object         = null;
     #simple         = null;
     #empty          = null;
@@ -29,6 +30,10 @@ class Pyrus {
     #ids            = {table: null};
     /* /Property */
 
+    /**
+     * @param {String} e
+     * @param {JSON} elements
+     */
     constructor(e = null, elements = null) {
         this.#entity = e;
 
@@ -46,7 +51,7 @@ class Pyrus {
         }
         this.#object = __ENTITY[ this.#entity ];
         this.#name = this.#object.NAME === undefined ? this.#entity : this.#object.NAME;
-        this.#table = this.#object.TABLE === undefined ? this.#entity : this.#object.TABLE;
+        this.#tableDB = this.#object.TABLE === undefined ? this.#entity : this.#object.TABLE;
         /* ------------------- */
         this.#getSpecification();
         this.#getSimple();
@@ -62,11 +67,11 @@ class Pyrus {
     get name() {
         return this.#name;
     }
-    get table() {
-        return this.#table;
+    get tableDB() {
+        return this.#tableDB;
     }
     get empty() {
-        return this.#empty;
+        return {...this.#empty};
     }
     get ids() {
         return this.#ids;
@@ -221,9 +226,9 @@ class Pyrus {
         }
     };
     /**
-     * @property id_container (string) ID del contenedor donde se construirá la tabla
+     * @property {String} id_container
      */
-    #getTable = id_container => {
+    #buildTable = id_container => {
         const table_container = id(id_container);
         let element = document.createElement("TABLE");
         element.setAttribute("id", this.#ids.table);
@@ -261,12 +266,17 @@ class Pyrus {
 
         window.TableTrFirst = element_body_tr;
     };
+    /**
+     * @param {String} id_container
+     */
     table = (id_container = "table-container") => {
-        this.#ids.table = `table-container-${this.#entity}`;
-        this.#getTable(id_container);
+        this.#ids.table = `${id_container}-${this.#entity}`;
+        this.#buildTable(id_container);
     };
     /**
-     * @property id_container (string) ID del contenedor donde se construirá la tabla
+     * @param {String} id_container
+     * @param {String} name
+     * @param {Boolean} multiple
      */
     #buildForm = (id_container, name, multiple) => {
         const form_container = id(id_container);
@@ -318,10 +328,10 @@ class Pyrus {
         this.#buildForm(id_container, name, multiple);
     };
     /**
-     * @property property Nombre usado en el ENTITY como parámetro de la entidad
-     * @property name @type string Nombre que se le puede adicionar al elemento para que el formulario sea único
-     * @property multiple @type boolean TRUE: agrega campo múltiple
-     * @returns array
+     * @param {String} property
+     * @param {String} name
+     * @param {Boolean} multiple
+     * @returns {JSON}
      */
     #names = (property, name, multiple) => {
         let names = {name:null, id:null};
@@ -343,10 +353,9 @@ class Pyrus {
         return names;
     };
     /**
-     * @property element (json) Elemento de la entidad
-     * @property form (json) Elemento necesarios para el FORM
-     * @property names (json) Conjunto de nombres
-     * @returns object tipo form
+     * @param {JSON} element
+     * @param {JSON} names
+     * @returns {Object}
     */
     #suitableItem = (element, names) => {
         if(element.VISIBILITY == 'TP_VISIBLE' || element.VISIBILITY == 'TP_VISIBLE_FORM' )
@@ -379,6 +388,48 @@ class Pyrus {
             return this.#inputHidden(element, names);
     };
     /** ITEMS */
+    /**
+     * @param {JSON} element
+     * @param {Object} container
+     * @param {Object} object
+     * @param {JSON}
+     */
+    #appendLabelHelp = (element, container, object, names) => {
+        if(element.LABEL)
+        {
+            let label = document.createElement("LABEL");
+            label.htmlFor = names.id;
+            label.textContent = element.NAME;
+            container.appendChild(label);
+        }
+        container.appendChild(object);
+        if(element.HELP !== undefined)
+        {
+            let small = document.createElement("SMALL");
+            small.classList.add("form-text","text-muted");
+            small.textContent = element.HELP;
+            container.appendChild(small);
+        }
+    };
+    /**
+     * @param {JSON} element
+     * @param {JSON} object
+     */
+    #attrInput = (element, object) => {
+        if(element.CLASS != null)
+            object.classList.add(...element.CLASS.split(" "));
+        if(element.REQUIRED)
+            object.required = true;
+        if(element.DISABLED)
+            object.disabled = true;
+        if(element.READONLY)
+            object.readOnly = true;
+    };
+    /**
+     * @param {JSON} element
+     * @param {JSON} names
+     * @param {String} type
+     */
     #input = (element, names, type) => {
         let object = document.createElement("INPUT");
         let container = document.createElement("DIV");
@@ -416,35 +467,18 @@ class Pyrus {
                 element.PATTERN = "[A-Za-z]";
         }
         object.setAttribute("pattern",element.PATTERN);
-        if(element.CLASS != null)
-            object.classList.add(...element.CLASS.split(" "));
-        if(element.REQUIRED)
-            object.required = true;
-        if(element.DISABLED)
-            object.disabled = true;
-        if(element.READONLY)
-            object.readOnly = true;
+        this.#attrInput(element, object);
         object.placeholder = element.PLACEHOLDER !== undefined ? element.PLACEHOLDER : element.NAME;
         object.setAttribute("aria-label", element.NAME);
         object.setAttribute("name", names.name);
         object.setAttribute("id", names.id);
-        if(element.LABEL)
-        {
-            let label = document.createElement("LABEL");
-            label.htmlFor = names.id;
-            label.textContent = element.NAME;
-            container.appendChild(label);
-        }
-        container.appendChild(object);
-        if(element.HELP !== undefined)
-        {
-            let small = document.createElement("SMALL");
-            small.classList.add("form-text","text-muted");
-            small.textContent = element.HELP;
-            container.appendChild(small);
-        }
+        this.#appendLabelHelp(element, container, object, names);
         return container;
     };
+    /**
+     * @param {JSON} element
+     * @param {JSON} names
+     */
     #inputDate = (element, names) => {
         let object = document.createElement("INPUT");
         let container = document.createElement("DIV");
@@ -453,35 +487,18 @@ class Pyrus {
             element.CLASS = "form-control text-right";
         else
             element.CLASS += " form-control text-right";
-        if(element.CLASS != null)
-            object.classList.add(...element.CLASS.split(" "));
-        if(element.REQUIRED)
-            object.required = true;
-        if(element.DISABLED)
-            object.disabled = true;
-        if(element.READONLY)
-            object.readOnly = true;
+        this.#attrInput(element, object);
         object.setAttribute("type", "date");
         object.setAttribute("aria-label", element.NAME);
         object.setAttribute("name", names.name);
         object.setAttribute("id", names.id);
-        if(element.LABEL)
-        {
-            let label = document.createElement("LABEL");
-            label.htmlFor = names.id;
-            label.textContent = element.NAME;
-            container.appendChild(label);
-        }
-        container.appendChild(object);
-        if(element.HELP !== undefined)
-        {
-            let small = document.createElement("SMALL");
-            small.classList.add("form-text","text-muted");
-            small.textContent = element.HELP;
-            q.appendChild(small);
-        }
+        this.#appendLabelHelp(element, container, object, names);
         return container;
     };
+    /**
+     * @param {JSON} element
+     * @param {JSON} names
+     */
     #inputHidden = (element, names) => {
         let object = document.createElement("INPUT");
         object.setAttribute("type", "hidden");
@@ -489,6 +506,10 @@ class Pyrus {
         object.setAttribute("id", names.id);
         return object;
     };
+    /**
+     * @param {JSON} element
+     * @param {JSON} names
+     */
     #textarea = (element, names) => {
         let object = document.createElement("TEXTAREA");
         let container = document.createElement("DIV");
@@ -497,59 +518,46 @@ class Pyrus {
             element.CLASS = "form-control";
         else
             element.CLASS += " form-control";
-        if(element.CLASS != null)
-            object.classList.add(...element.CLASS.split(" "));
-        if(element.REQUIRED)
-            object.required = true;
-        if(element.DISABLED)
-            object.disabled = true;
-        if(element.READONLY)
-            object.readOnly = true;
+        this.#attrInput(element, object);
         object.placeholder = element.PLACEHOLDER !== undefined ? element.PLACEHOLDER : element.NAME;
         object.setAttribute("aria-label", element.NAME);
         object.setAttribute("name", names.name);
         object.setAttribute("id", names.id);
-        if(element.LABEL)
-        {
-            let label = document.createElement("LABEL");
-            label.htmlFor = names.id;
-            label.textContent = element.NAME;
-            container.appendChild(label);
-        }
-        container.appendChild(object);
-        if(element.HELP !== undefined)
-        {
-            let small = document.createElement("SMALL");
-            small.classList.add("form-text","text-muted");
-            small.textContent = element.HELP;
-            container.appendChild(small);
-        }
+        this.#appendLabelHelp(element, container, object, names);
         return container;
     };
+    /**
+     * @param {JSON} element
+     * @param {JSON} names
+     */
     #image = (element, names) => {
-        let container = document.createElement("DIV");
-        let images = container.cloneNode(true);
+        let file = document.createElement("DIV");
+        let container = file.cloneNode(true);
+        let images = file.cloneNode(true);
         let object = document.createElement("INPUT");
         let input = object.cloneNode(true);
         let label = document.createElement("LABEL");
         let svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
         let rect = document.createElementNS("http://www.w3.org/2000/svg", "rect");
-        let img = document.createElement("IMAGE");
-        img.setAttribute("x","0");
-        img.setAttribute("y","0");
-        img.setAttribute("width","100%");
-        img.setAttribute("xlink:href","");
+        let svgimg = document.createElementNS('http://www.w3.org/2000/svg','image');
+        container.classList.add("form-group");
+        svgimg.setAttributeNS(null,"height","170");
+        svgimg.classList.add("w-100");
+        svgimg.setAttributeNS("http://www.w3.org/1999/xlink","href", __img_not_found);
+        svgimg.setAttributeNS(null,"x","0");
+        svgimg.setAttributeNS(null,"y","0");
+        svgimg.setAttributeNS(null, "visibility", "visible");
         rect.setAttribute("fill", "#868e96");
         rect.setAttribute("height", "170");
         rect.classList.add("w-100");
         svg.setAttribute("aria-label", "Placeholder: Imagen");
         svg.setAttribute("height", "170");
         svg.classList.add("w-100");
-        svg.appendChild(img);
         svg.appendChild(rect);
+        svg.appendChild(svgimg);
 
         images.classList.add("d-flex", "flex-column");
-        container.classList.add("custom-file");
+        file.classList.add("custom-file");
         label.setAttribute("data-invalid",element.NAME);
         label.classList.add("custom-file-label", "mb-0", "text-truncate");
         label.htmlFor = names.id;
@@ -563,16 +571,57 @@ class Pyrus {
         object.setAttribute("type", "file");
         object.setAttribute("name", names.name);
         object.setAttribute("id", names.id);
-        container.appendChild(object);
-        container.appendChild(label);
-        container.appendChild(input);
+        file.appendChild(object);
+        file.appendChild(label);
+        file.appendChild(input);
 
         images.appendChild(svg);
-        images.appendChild(container);
-        return images;
+        images.appendChild(file);
+        this.#appendLabelHelp(element, container, images, names);
+        return container;
     };
+    /**
+     * @param {JSON} element
+     * @param {JSON} names
+     */
     #select = (element, names) => {
-
-        return null;
+        let object = document.createElement("SELECT");
+        let container = document.createElement("DIV");
+        container.classList.add("form-group");
+        if(element.CLASS === undefined)
+            element.CLASS = "form-control";
+        else
+            element.CLASS += " form-control";
+        if(element.MULTIPLE === undefined)
+            element.MULTIPLE = false;
+        if(element.CLASS != null)
+            object.classList.add(...element.CLASS.split(" "));
+        if(element.REQUIRED)
+            object.required = true;
+        if(element.DISABLED)
+            object.disabled = true;
+        if(element.READONLY)
+            object.readOnly = true;
+        object.setAttribute("name", names.name);
+        object.setAttribute("id", names.id);
+        object.setAttribute("data-live-search",true);
+        object.setAttribute("data-width","100%");
+        object.setAttribute("data-container","body")
+        if(element.MULTIPLE)
+            object.multiple = true;
+        /** OPTIONS */
+        if(element.OPTION !== undefined)
+        {
+            for(let opt of element.OPTION)
+            {
+                let option = document.createElement("OPTION");
+                option.text = opt._t;
+                option.value = opt._v;
+                object.options.add(option, 1);
+            }
+        }
+        /** /OPTIONS */
+        this.#appendLabelHelp(element, container, object, names);
+        return container;
     };
 };

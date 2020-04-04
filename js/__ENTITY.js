@@ -1,6 +1,12 @@
+const __img_not_found = "https://pablocorzo.dev/images/image-not-found.jpg";
 const __types = {
     string: "TP_STRING",
     text: "TP_TEXT",
+    link: "TP_LINK",
+    phone: "TP_PHONE",
+    email: "TP_EMAIL",
+    select: "TP_SELECT",
+    password: "TP_PASSWORD",
     image: "TP_IMAGE",
     date: "TP_DATE",
     pk: "TP_PK"
@@ -81,7 +87,7 @@ const __ENTITY = {
             image: {
                 ... property_image,
                 ... property_common,
-                NECESSARY: 1,
+                LABEL: true,
                 FOLDER: "sliders",
                 ACCEPT: "image/*",
                 NAME: "imagen",
@@ -99,6 +105,17 @@ const __ENTITY = {
                 ELEMENT: [__types.date,__visibilities.visible],
                 NAME: "fecha",
                 LABEL: true
+            },
+            select: {
+                ... property_common,
+                ELEMENT: [__types.select,__visibilities.visible],
+                NAME: "selector",
+                LABEL: true,
+                MULTIPLE: true,
+                OPTION: [
+                    {_v: 1, _t: "Texto"},
+                    {_v: 2, _t: "Texto 2"}
+                ]
             }
         },
         COLUMN: {
@@ -125,6 +142,9 @@ const __ENTITY = {
                 text: "col-12 col-sm-7 col-md-9 col-xl-10",
                 order: "col-12 col-sm-5 col-md-3 col-xl-2"
             },
+            {
+                select: "col-12 col-sm-7 col-md-9 col-xl-10"
+            }
         ],
         FUNCTION: {
             image: {
