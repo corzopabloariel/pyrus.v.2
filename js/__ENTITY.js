@@ -1,4 +1,7 @@
 const __img_not_found = "https://pablocorzo.dev/images/image-not-found.jpg";
+window.pyrus_elements = [];
+const id = document.getElementById.bind(document);
+
 const __types = {
     string: "TP_STRING",
     text: "TP_TEXT",

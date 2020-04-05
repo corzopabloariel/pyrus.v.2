@@ -15,8 +15,6 @@
  * @version 2.0
  * @author Pablo Corzo (hola@pablocorzo.dev)
  */
-window.pyrus_elements = [];
-const id = document.getElementById.bind(document);
 class Pyrus {
     /* Property */
     #entity         = null;
