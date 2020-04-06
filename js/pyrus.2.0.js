@@ -67,6 +67,11 @@ class Pyrus {
         console.timeEnd("Load");
     }
 
+    static elements()
+    {
+        console.table(window.pyrus_elements);
+    }
+
     /**
      * GET PROPERY
      */
@@ -232,10 +237,9 @@ class Pyrus {
         }
     };
     /**
-     * @property {String} id_container
+     * @property {Object} table_container
      */
-    #buildTable = id_container => {
-        const table_container = id(id_container);
+    #buildTable = table_container => {
         let element = document.createElement("TABLE");
         element.setAttribute("id", this.#ids.table);
         let element_head = element.createTHead();
@@ -272,26 +276,26 @@ class Pyrus {
 
         window.TableTrFirst = element_body_tr;
     };
-    /**
-     * @param {String} id_container
-     */
     table = () => {
-        if(!document.getElementById(`table-pyrus-${this.#entity}`))
+        let table_element = document.getElementsByTagName(`table-pyrus-${this.#entity}`);
+        if(!table_element.length)
         {
-            let table_element = document.createElement("table-pyrus");
+            table_element = document.createElement(`table-pyrus-${this.#entity}`);
             table_element.setAttribute("id",`table-pyrus-${this.#entity}`);
             this.#container.appendChild(table_element);
             this.#ids.table = `table-pyrus-${this.#entity}`;
-            this.#buildTable(this.#ids.table);
         }
+        else
+            table_element = table_element[0];
+        createClass(`table-pyrus-${this.#entity}`,"display: block;");
+        this.#buildTable(table_element);
     };
     /**
-     * @param {String} id_container
+     * @param {Object} form_container
      * @param {String} name
      * @param {Boolean} multiple
      */
-    #buildForm = (id_container, name, multiple) => {
-        const form_container = id(id_container);
+    #buildForm = (form_container, name, multiple) => {
         const form = this.#object.FORM === undefined ? null : this.#object.FORM;
         let element_id = (new Date).getTime();
         if(form === null)
@@ -344,14 +348,18 @@ class Pyrus {
         }
     };
     form = (name = null, multiple = false) => {
-        if(!document.getElementById(`form-pyrus-${this.#entity}`))
+        let form_element = document.getElementsByTagName(`form-pyrus-${this.#entity}`);
+        if(!form_element.length)
         {
-            let form_element = document.createElement("form-pyrus");
+            form_element = document.createElement(`form-pyrus-${this.#entity}`);
             form_element.setAttribute("id",`form-pyrus-${this.#entity}`);
             this.#container.appendChild(form_element);
             this.#ids.form = `form-pyrus-${this.#entity}`;
-            this.#buildForm(this.#ids.form, name, multiple);
         }
+        else
+            form_element = form_element[0];
+        createClass(`form-pyrus-${this.#entity}`,"display: block;");
+        this.#buildForm(form_element, name, multiple);
     };
     /**
      * @param {String} property
@@ -650,9 +658,4 @@ class Pyrus {
         this.#appendLabelHelp(element, container, object, names);
         return container;
     };
-
-    static elements()
-    {
-        console.table(window.pyrus_elements);
-    }
 };
