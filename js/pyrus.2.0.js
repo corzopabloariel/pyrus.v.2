@@ -297,7 +297,7 @@ class Pyrus {
      */
     #buildForm = (form_container, name, multiple) => {
         const form = this.#object.FORM === undefined ? null : this.#object.FORM;
-        let element_id = (new Date).getTime();
+        let element_id = Date.now();
         if(form === null)
         {
             for(let property in this.#form)
@@ -428,7 +428,7 @@ class Pyrus {
      * @param {Object} object
      * @param {JSON}
      */
-    #appendLabelHelp = (element, container, object, names) => {
+    #appendLabelHelpFunction = (element, container, object, names, functions = true) => {
         if(element.LABEL)
         {
             let label = document.createElement("LABEL");
@@ -443,6 +443,11 @@ class Pyrus {
             small.classList.add("form-text","text-muted");
             small.textContent = element.HELP;
             container.appendChild(small);
+        }
+        if(element.FUNCTION && functions)
+        {
+            for(let _function in element.FUNCTION)
+                object.setAttribute(_function, element.FUNCTION[_function]);
         }
     };
     /**
@@ -506,7 +511,7 @@ class Pyrus {
         object.setAttribute("aria-label", element.NAME);
         object.setAttribute("name", names.name);
         object.setAttribute("id", names.id);
-        this.#appendLabelHelp(element, container, object, names);
+        this.#appendLabelHelpFunction(element, container, object, names);
         return container;
     };
     /**
@@ -526,7 +531,7 @@ class Pyrus {
         object.setAttribute("aria-label", element.NAME);
         object.setAttribute("name", names.name);
         object.setAttribute("id", names.id);
-        this.#appendLabelHelp(element, container, object, names);
+        this.#appendLabelHelpFunction(element, container, object, names);
         return container;
     };
     /**
@@ -557,7 +562,7 @@ class Pyrus {
         object.setAttribute("aria-label", element.NAME);
         object.setAttribute("name", names.name);
         object.setAttribute("id", names.id);
-        this.#appendLabelHelp(element, container, object, names);
+        this.#appendLabelHelpFunction(element, container, object, names);
         return container;
     };
     /**
@@ -577,6 +582,7 @@ class Pyrus {
         container.classList.add("form-group");
         svgimg.setAttributeNS(null,"height","170");
         svgimg.classList.add("w-100");
+        svgimg.setAttribute("id", `image-${names.id}`)
         svgimg.setAttributeNS("http://www.w3.org/1999/xlink","href", __img_not_found);
         svgimg.setAttributeNS(null,"x","0");
         svgimg.setAttributeNS(null,"y","0");
@@ -590,7 +596,6 @@ class Pyrus {
         svg.appendChild(rect);
         svg.appendChild(svgimg);
 
-        images.classList.add("d-flex", "flex-column");
         file.classList.add("custom-file");
         label.setAttribute("data-invalid",element.NAME);
         label.classList.add("custom-file-label", "mb-0", "text-truncate");
@@ -605,13 +610,15 @@ class Pyrus {
         object.setAttribute("type", "file");
         object.setAttribute("name", names.name);
         object.setAttribute("id", names.id);
+        for(let _function in element.FUNCTION)
+            object.setAttribute(_function, element.FUNCTION[_function]);
         file.appendChild(object);
         file.appendChild(label);
         file.appendChild(input);
 
         images.appendChild(svg);
         images.appendChild(file);
-        this.#appendLabelHelp(element, container, images, names);
+        this.#appendLabelHelpFunction(element, container, images, names, false);
         return container;
     };
     /**
@@ -655,7 +662,7 @@ class Pyrus {
             }
         }
         /** /OPTIONS */
-        this.#appendLabelHelp(element, container, object, names);
+        this.#appendLabelHelpFunction(element, container, object, names);
         return container;
     };
 };

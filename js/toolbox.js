@@ -22,3 +22,17 @@ function createClass(name,rules)
             style.sheet.insertRule(name+"{"+rules+"}",0);
     }
 }
+
+/** -------------------------------------
+ *      PREVIEW DE IMAGEN
+ ** ------------------------------------- */
+function readURL( input ) {
+    if ( input.files && input.files[ 0 ] ) {
+        let reader = new FileReader();
+        reader.onload = ( e ) => {
+            let image = document.getElementById(`image-${input.id}`);
+            image.setAttribute("href", e.target.result);
+        };
+        reader.readAsDataURL( input.files[ 0 ] );
+    }
+}

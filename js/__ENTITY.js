@@ -147,7 +147,7 @@ const __ENTITY = {
         ],
         FUNCTION: {
             image: {
-                onchange:{F:"readURL(this,'/image/')",C:"image"}
+                onchange: "readURL(this)"
             }
         },
         EDITOR: {
