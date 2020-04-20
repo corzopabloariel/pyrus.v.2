@@ -171,6 +171,7 @@ const __ENTITY = {
                 ... property_common,
                 ELEMENT: [__types.string,__visibilities.visible],
                 NAME: "Nombre",
+                MIN: 5,
                 LABEL: true
             },
             last_name: {

@@ -62,6 +62,7 @@ class Pyrus {
     #column         = null;
     #form           = null;
     #ids            = {table: null};
+    #this           = this;
     method          = null;
     /* /Property */
 
@@ -69,11 +70,12 @@ class Pyrus {
      * @param {String} e
      */
     constructor(e) {
-        //try {
+        try {
             if (!e) {
                 console.warn(`AVISO: No se ha pasado ninguna entidad. Uso limitado`);
                 return false;
             }
+
             this.#entity = e.e;
             this.#container = document.querySelector(`${e.el.c}`);
             console.time("Load");
@@ -96,13 +98,20 @@ class Pyrus {
                 this.method = e.method;
             /* ------------------- */
             if (e.el.f)
-                this.form();
+                this.form(() => {
+                    window.pyrus__ids.forEach(id => {
+                        const ele = document.querySelector(`#${id}`);
+                        ele.addEventListener('keyup', logKey);
+                        ele.element = this.#this;
+                    }, this);
+                });
             if (e.el.t)
                 this.table();
+            this.#this = this;
             console.timeEnd("Load");
-        /*} catch (error) {
+        } catch (error) {
             console.error(error);
-        }*/
+        }
     }
 
     static elements() {
@@ -151,7 +160,7 @@ class Pyrus {
         return this.#tableDB;
     }
     get empty() {
-        return {...this.#empty};
+        return this.#empty;
     }
     get ids() {
         return this.#ids;
@@ -257,38 +266,38 @@ class Pyrus {
         let width_;
         let name_;
         this.#column = [];
-        if (this.#object.COLUMN === undefined) {
-            for (let property in this.#specification) {
-                if (this.#specification[property].TYPE == "TP_PK")
-                    continue;
-                if (this.#specification[property].VISIBILITY != "TP_VISIBLE" && this.#specification[property].VISIBILITY != "TP_VISIBLE_TABLE" )
-                    continue;
+        if (!this.#object.COLUMN) {
+            let aux = Object.entries(this.#specification);
+            this.#column = aux.map(x => {
+                if (!this.#specification[x[0]])
+                    return null;
+                if (this.#specification[x[0]].TYPE == "TP_PK" || (this.#specification[x[0]].VISIBILITY != "TP_VISIBLE" && this.#specification[x[0]].VISIBILITY != "TP_VISIBLE_TABLE"))
+                    return null;
                 width_ = "auto";
-                name_ = property.toUpperCase();
-                if (this.#specification[property].NAME !== undefined)
-                    name_ = this.#specification[property].NAME.toUpperCase();
-                if (this.#specification[property].WIDTH !== undefined && this.#specification[property].TABLE === undefined)
-                    width_ = this.#specification[property].WIDTH;
+                name_ = x[0].toUpperCase();
+                if (this.#specification[x[0]].NAME !== undefined)
+                    name_ = this.#specification[x[0]].NAME.toUpperCase();
+                if (this.#specification[x[0]].WIDTH !== undefined && this.#specification[x[0]].TABLE === undefined)
+                    width_ = this.#specification[x[0]].WIDTH;
                 else {
-                    if (this.#specification[property].TABLE !== undefined)
-                        width_ = this.#specification[property].TABLE;
+                    if (this.#specification[x[0]].TABLE !== undefined)
+                        width_ = this.#specification[x[0]].TABLE;
                 }
-                this.#column.push({ NAME: name_, COLUMN: property, WIDTH: width_});
-            }
+                return { NAME: name_, COLUMN: x[0], WIDTH: width_};
+            }, this).filter(Boolean);
         } else {
-            for (let property in this.#object.COLUMN) {
-                if (this.#specification[property] === undefined)
-                    continue;
-                if (this.#specification[property].TYPE == "TP_PK")
-                    continue;
-                if (this.#specification[property].VISIBILITY != "TP_VISIBLE" && this.#specification[property].VISIBILITY != "TP_VISIBLE_TABLE" )
-                    continue;
-                width_ = this.#object.COLUMN[property].WIDTH === undefined ? "auto" : this.#object.COLUMN[property].WIDTH;
-                name_ = property.toUpperCase();
-                if (this.#specification[property].NAME !== undefined)
-                    name_ = this.#specification[property].NAME.toUpperCase();
-                this.#column.push({ NAME: name_, COLUMN: property, WIDTH: width_});
-            }
+            let aux = Object.entries(this.#object.COLUMN);
+            this.#column = aux.map(x => {
+                if (!this.#specification[x[0]])
+                    return null;
+                if (this.#specification[x[0]].TYPE == "TP_PK" || (this.#specification[x[0]].VISIBILITY != "TP_VISIBLE" && this.#specification[x[0]].VISIBILITY != "TP_VISIBLE_TABLE"))
+                    return null;
+                width_ = this.#object.COLUMN[x[0]].WIDTH === undefined ? "auto" : this.#object.COLUMN[x[0]].WIDTH;
+                name_ = x[0].toUpperCase();
+                if (this.#specification[x[0]].NAME)
+                    name_ = this.#specification[x[0]].NAME.toUpperCase();
+                return { NAME: name_, COLUMN: x[0], WIDTH: width_};
+            }, this).filter(Boolean);
         }
     };
     /**
@@ -415,7 +424,7 @@ class Pyrus {
      * @returns {JSON}
      */
     #names = (property, name, multiple) => {
-        let names = {name:null, id:null};
+        let names = {name:null, id:null, property:property};
         names.name = `${this.#entity}_${property}`;
         names.id = `${this.#entity}_${property}`;
         if (name !== null) {
@@ -429,6 +438,9 @@ class Pyrus {
             names.name += `[]`;
             names.id += `_${window[`${this.#entity}_${property}`]}`;
         }
+        if (!window.pyrus__ids)
+            window.pyrus__ids = [];
+        window.pyrus__ids.push(names.id);
         return names;
     };
     /**
@@ -471,7 +483,7 @@ class Pyrus {
      * @param {JSON} element
      * @param {Object} container
      * @param {Object} object
-     * @param {JSON}
+     * @param {JSON} names
      */
     #appendLabelHelpFunction = (element, container, object, names, functions = true) => {
         if (element.LABEL) {
@@ -491,6 +503,16 @@ class Pyrus {
             for(let _function in element.FUNCTION)
                 object.setAttribute(_function, element.FUNCTION[_function]);
         }
+    };
+    /**
+     * @param {JSON} element
+     * @param {JSON} names
+     */
+    #appendNames = (object, names, element) => {
+        object.setAttribute("aria-label", element.NAME);
+        object.setAttribute("name", names.name);
+        object.setAttribute("id", names.id);
+        object.setAttribute("data-property", names.property);
     };
     /**
      * @param {JSON} element
@@ -533,7 +555,7 @@ class Pyrus {
             break;
             case "text":
                 element.CLASS += " input-text";
-                element.PATTERN = "[A-Za-z]";
+                element.PATTERN = `[A-Za-z]{${element.MIN ? element.MIN : 3},}`;
             break;
             case "email":
                 element.CLASS += " input-email";
@@ -545,14 +567,12 @@ class Pyrus {
                 break;
             default:
                 element.CLASS += " input-text";
-                element.PATTERN = "[A-Za-z]";
+                element.PATTERN = `[A-Za-z]{${element.MIN ? element.MIN : 3},}`;
         }
         object.setAttribute("pattern",element.PATTERN);
         this.#attrInput(element, object);
         object.placeholder = element.PLACEHOLDER !== undefined ? element.PLACEHOLDER : element.NAME;
-        object.setAttribute("aria-label", element.NAME);
-        object.setAttribute("name", names.name);
-        object.setAttribute("id", names.id);
+        this.#appendNames(object, names, element);
         this.#appendLabelHelpFunction(element, container, object, names);
         return container;
     };
@@ -576,9 +596,7 @@ class Pyrus {
         if (element.DEFAULT)
             object.value = element.DEFAULT;
         object.setAttribute("type", "number");
-        object.setAttribute("aria-label", element.NAME);
-        object.setAttribute("name", names.name);
-        object.setAttribute("id", names.id);
+        this.#appendNames(object, names, element);
         this.#appendLabelHelpFunction(element, container, object, names);
         return container;
     };
@@ -596,9 +614,7 @@ class Pyrus {
             element.CLASS += " form-control text-right";
         this.#attrInput(element, object);
         object.setAttribute("type", "date");
-        object.setAttribute("aria-label", element.NAME);
-        object.setAttribute("name", names.name);
-        object.setAttribute("id", names.id);
+        this.#appendNames(object, names, element);
         this.#appendLabelHelpFunction(element, container, object, names);
         return container;
     };
@@ -627,9 +643,7 @@ class Pyrus {
             element.CLASS += " form-control";
         this.#attrInput(element, object);
         object.placeholder = element.PLACEHOLDER !== undefined ? element.PLACEHOLDER : element.NAME;
-        object.setAttribute("aria-label", element.NAME);
-        object.setAttribute("name", names.name);
-        object.setAttribute("id", names.id);
+        this.#appendNames(object, names, element);
         this.#appendLabelHelpFunction(element, container, object, names);
         return container;
     };
@@ -711,8 +725,7 @@ class Pyrus {
             object.disabled = true;
         if (element.READONLY)
             object.readOnly = true;
-        object.setAttribute("name", names.name);
-        object.setAttribute("id", names.id);
+        this.#appendNames(object, names, element);
         object.setAttribute("data-live-search",true);
         object.setAttribute("data-width","100%");
         object.setAttribute("data-container","body")
@@ -742,7 +755,7 @@ class Pyrus {
         createClass(`table-pyrus-${this.entity}`,"display: block;");
         this.#buildTable(table_element);
     };
-    form = (name = null, multiple = false) => {
+    form = (callback, name = null, multiple = false) => {
         let form_element = document.querySelector(`form-pyrus-${this.#entity}`);
         this.#ids.form = `form-pyrus-${this.#entity}`;
         if (!form_element) {
@@ -752,6 +765,7 @@ class Pyrus {
         }
         createClass(`form-pyrus-${this.#entity}`,"display: block;");
         this.#buildForm(form_element, name, multiple);
+        callback.call(this);
     };
 };
 

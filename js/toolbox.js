@@ -33,28 +33,15 @@ function readURL( input ) {
         reader.readAsDataURL( input.files[ 0 ] );
     }
 }
-/*
-regexData = /([0-9]{4})-([0-9]{2})-([0-9]{4})/;
-match = regexData.exec('2020-04-06'):
 
-async-await 38
-function obtener(id) {
-    return new Promise((resolve, reject) => {
-        $
-            .get(url, {crossDomain: true}, function(data) {
-                resolve(data);
-            })
-            .fail(() => reject(id))
-    });
+function logKey(e) {
+    if (e.charCode !== 13) {
+        const property = e.srcElement.dataset.property;
+        const element = e.currentTarget.element;
+        element.empty[property] = e.target.value;
+    }
 }
-function onError(id) { console.log("ee"); }
-var promesas = ids.map(id => obtener(id) );
-Promise
-    .all(promesas)
-    .then(personajes => console.log(pesonajes))
-    .catch(onError)
------------- closures
-function x(x1) {
-    return function(x2) {}
-}
+/*
+regexData = /([0-9]{4})-([0-9]{2})-([0-9]{2})/;
+match = regexData.exec('2020-04-06');
 */

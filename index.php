@@ -23,10 +23,16 @@
         let p = new Pyrus({
             e: "slider",
             el: {
-                c: "container",
-                t: true,
-                f: true
-            }
+	            c: "container",
+	            t: true,
+	            f: true
+	        },
+	        method: {
+	            post: function() {
+	                this.element = "form-pyrus-client";
+	                this.http = 'api/profesional/store';
+	            }
+	        }
         });
     </script>
 </body>
