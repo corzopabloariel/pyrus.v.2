@@ -10,11 +10,45 @@
  * @requires
  * AXIOS: todos los request son por medio de axios
  * CKEDITOR: para establecer editores ricos en los formularios
+ * SWEETALERT: https://sweetalert.js.org/
  * SELECTPICKER:
  * -------------------------- /
  * @version 2.0
  * @author Pablo Corzo (hola@pablocorzo.dev)
  */
+class Pyrus__connect {
+    static fetchData(url_api, type, data) {
+        let formData = null;
+        if (data.data) {
+            formData = new FormData();
+            for(let k in data.data)
+                formData.append(k, data.data[k]);
+        }
+        return new Promise((resolve, reject) => {
+            let xhttp = new XMLHttpRequest();
+            xhttp.open(type, url_api, true);
+            xhttp.onreadystatechange = (() => {
+                if(xhttp.readyState === 4)
+                {
+                    (xhttp.status === 200)
+                        ? resolve(JSON.parse(xhttp.responseText))
+                        : reject(new Error('Error', url_api))
+                }
+            });
+            if (data.header) {
+                for (let k in data.header)
+                    xhttp.setRequestHeader(k, data.header[k])
+            }
+            xhttp.send(formData);
+        })
+    }
+    static async post(url_api, data = null) {
+        return await this.fetchData(url_api, "POST", data);
+    }
+    static async get(url_api, data = null) {
+        return await this.fetchData(url_api, "GET", data);
+    }
+}
 class Pyrus {
     /* Property */
     #entity         = null;
@@ -28,55 +62,90 @@ class Pyrus {
     #column         = null;
     #form           = null;
     #ids            = {table: null};
+    method          = null;
     /* /Property */
 
     /**
      * @param {String} e
-     * @param {JSON} elements
      */
-    constructor(e, elements)
-    {
-        if (!e)
-        {
-            console.warn(`AVISO: No se ha pasado ninguna entidad. Uso limitado`);
-            return false;
-        }
-        this.#entity = e.e;
-        this.#container = document.getElementById(e.el.c);
-        console.time("Load");
-        /* ------------------- */
-        if(__ENTITY[ this.#entity ] === undefined)
-        {
-            console.warn(`AVISO: Entidad "${this.#entity}" no encontrada`);
-            return false;
-        }
-        this.#object = __ENTITY[ this.#entity ];
-        this.#name = this.#object.NAME === undefined ? this.#entity : this.#object.NAME;
-        this.#tableDB = this.#object.TABLE === undefined ? this.#entity : this.#object.TABLE;
-        /* ------------------- */
-        this.#getSpecification();
-        this.#getSimple();
-        this.#getEmpty();
-        this.#getColumn();
-        this.#getForm();
-        /* ------------------- */
-        if(e.el.f)
-            this.form();
-        if(e.el.t)
-            this.table();
-        console.timeEnd("Load");
+    constructor(e) {
+        //try {
+            if (!e) {
+                console.warn(`AVISO: No se ha pasado ninguna entidad. Uso limitado`);
+                return false;
+            }
+            this.#entity = e.e;
+            this.#container = document.querySelector(`${e.el.c}`);
+            console.time("Load");
+            /* ------------------- */
+            if (__ENTITY[ this.#entity ] === undefined) {
+                console.warn(`AVISO: Entidad "${this.#entity}" no encontrada`);
+                return false;
+            }
+            this.#object = __ENTITY[ this.#entity ];
+            this.#name = this.#object.NAME === undefined ? this.#entity : this.#object.NAME;
+            this.#tableDB = this.#object.TABLE === undefined ? this.#entity : this.#object.TABLE;
+            /* ------------------- */
+            this.#getSpecification();
+            this.#getSimple();
+            this.#getEmpty();
+            this.#getColumn();
+            this.#getForm();
+            /* ------------------- */
+            if (e.method)
+                this.method = e.method;
+            /* ------------------- */
+            if (e.el.f)
+                this.form();
+            if (e.el.t)
+                this.table();
+            console.timeEnd("Load");
+        /*} catch (error) {
+            console.error(error);
+        }*/
     }
 
-    static elements()
-    {
-        console.table(window.pyrus_elements);
+    static elements() {
+        return console.table(window.pyrus_elements);
     }
-
+    /**
+     * @property {String} u
+     */
+    static url(u) {
+        window.url__pyrus = u;
+        if (!sessionStorage.token) {
+            Pyrus__connect.post(`${window.url__pyrus}oauth/token`, {
+                data: {
+                    grant_type: 'client_credentials',
+                    client_id: 3,
+                    client_secret: 'c5MA5h3v05rob3c8WTrQKnIroluv1t2DrnjTVJ4Z'
+                }
+            })
+            .then(response => {
+                sessionStorage.setItem("token", JSON.stringify(response))
+            })
+            .catch(error => {
+                console.error(error);
+            });
+        }
+    }
+    /**
+     * @property {String} u
+     */
+    static folder(f) {
+        window.folder__pyrus = f;
+    }
     /**
      * GET PROPERY
      */
+    get entity() {
+        return this.#entity;
+    }
     get name() {
         return this.#name;
+    }
+    get container() {
+        return this.#container;
     }
     get tableDB() {
         return this.#tableDB;
@@ -94,8 +163,7 @@ class Pyrus {
      */
     #getSpecification = () => {
         this.#specification = {};
-        for (let property in this.#object.ATTR)
-        {
+        for (let property in this.#object.ATTR) {
             let { ELEMENT } = this.#object.ATTR[property];
             this.#specification[property] = {
                 ... this.#object.ATTR[property],
@@ -103,18 +171,14 @@ class Pyrus {
                 VISIBILITY: ""
             };
             delete this.#specification[property].ELEMENT;
-            for(let visibility in __visibilities)
-            {
-                if (ELEMENT.indexOf(__visibilities[visibility]) >= 0)
-                {
+            for (let visibility in __visibilities) {
+                if (ELEMENT.indexOf(__visibilities[visibility]) >= 0) {
                     this.#specification[property].VISIBILITY = __visibilities[visibility];
                     break;
                 }
             }
-            for(let type in __types)
-            {
-                if (ELEMENT.indexOf(__types[type]) >= 0)
-                {
+            for (let type in __types) {
+                if (ELEMENT.indexOf(__types[type]) >= 0) {
                     this.#specification[property].TYPE = __types[type];
                     break;
                 }
@@ -130,13 +194,11 @@ class Pyrus {
         this.#simple.table = this.table;
         this.#simple.specification = {};
         this.#simple.details = {};
-        for(let property in this.#specification)
-        {
+        for (let property in this.#specification) {
             if (this.#specification[property].HIDDEN !== undefined)
                 continue;
             this.#simple.specification[property] = this.#specification[property].TYPE;
-            switch (this.#specification[property].TYPE)
-            {
+            switch (this.#specification[property].TYPE) {
                 case "TP_FILE":
                 case "TP_IMAGE":
                 case "TP_BLOB":
@@ -163,7 +225,7 @@ class Pyrus {
      */
     #getEmpty = () => {
         this.#empty = {};
-		for(let property in this.#specification)
+		for (let property in this.#specification)
             this.#empty[ property ] = this.#specification[property].DEFAULT;
     };
     /**
@@ -172,19 +234,17 @@ class Pyrus {
      */
     #getForm = () => {
         this.#form = {};
-        for(let property in this.#specification)
-        {
-            if(this.#specification[property].TYPE == "TP_PK")
+        for (let property in this.#specification) {
+            if (this.#specification[property].TYPE == "TP_PK")
                 continue;
-            if(this.#specification[property].VISIBILITY == "TP_VISIBLE_TABLE" )
+            if (this.#specification[property].VISIBILITY == "TP_VISIBLE_TABLE" )
                 continue;
             this.#form[property] = {
                 ...this.#specification[property],
-                NAME: this.#specification[property].NAME.toLocaleUpperCase()
+                NAME: this.#specification[property].NAME
             }
-            if(this.#object.FUNCTION !== undefined)
-            {
-                if(this.#object.FUNCTION[property] !== undefined)
+            if (this.#object.FUNCTION !== undefined) {
+                if (this.#object.FUNCTION[property] !== undefined)
                     this.#form[property].FUNCTION = this.#object.FUNCTION[property];
             }
         }
@@ -197,40 +257,35 @@ class Pyrus {
         let width_;
         let name_;
         this.#column = [];
-        if(this.#object.COLUMN === undefined)
-        {
-            for(let property in this.#specification)
-            {
-                if(this.#specification[property].TYPE == "TP_PK")
+        if (this.#object.COLUMN === undefined) {
+            for (let property in this.#specification) {
+                if (this.#specification[property].TYPE == "TP_PK")
                     continue;
-                if(this.#specification[property].VISIBILITY != "TP_VISIBLE" && this.#specification[property].VISIBILITY != "TP_VISIBLE_TABLE" )
+                if (this.#specification[property].VISIBILITY != "TP_VISIBLE" && this.#specification[property].VISIBILITY != "TP_VISIBLE_TABLE" )
                     continue;
                 width_ = "auto";
                 name_ = property.toUpperCase();
-                if(this.#specification[property].NAME !== undefined)
+                if (this.#specification[property].NAME !== undefined)
                     name_ = this.#specification[property].NAME.toUpperCase();
-                if(this.#specification[property].WIDTH !== undefined && this.#specification[property].TABLE === undefined)
+                if (this.#specification[property].WIDTH !== undefined && this.#specification[property].TABLE === undefined)
                     width_ = this.#specification[property].WIDTH;
                 else {
-                    if(this.#specification[property].TABLE !== undefined)
+                    if (this.#specification[property].TABLE !== undefined)
                         width_ = this.#specification[property].TABLE;
                 }
                 this.#column.push({ NAME: name_, COLUMN: property, WIDTH: width_});
             }
-        }
-        else
-        {
-            for(let property in this.#object.COLUMN)
-            {
-                if(this.#specification[property] === undefined)
+        } else {
+            for (let property in this.#object.COLUMN) {
+                if (this.#specification[property] === undefined)
                     continue;
-                if(this.#specification[property].TYPE == "TP_PK")
+                if (this.#specification[property].TYPE == "TP_PK")
                     continue;
-                if(this.#specification[property].VISIBILITY != "TP_VISIBLE" && this.#specification[property].VISIBILITY != "TP_VISIBLE_TABLE" )
+                if (this.#specification[property].VISIBILITY != "TP_VISIBLE" && this.#specification[property].VISIBILITY != "TP_VISIBLE_TABLE" )
                     continue;
                 width_ = this.#object.COLUMN[property].WIDTH === undefined ? "auto" : this.#object.COLUMN[property].WIDTH;
                 name_ = property.toUpperCase();
-                if(this.#specification[property].NAME !== undefined)
+                if (this.#specification[property].NAME !== undefined)
                     name_ = this.#specification[property].NAME.toUpperCase();
                 this.#column.push({ NAME: name_, COLUMN: property, WIDTH: width_});
             }
@@ -241,21 +296,18 @@ class Pyrus {
      */
     #buildTable = table_container => {
         let element = document.createElement("TABLE");
-        element.setAttribute("id", this.#ids.table);
         let element_head = element.createTHead();
         let element_head_tr = document.createElement("TR");
         let element_body = document.createElement("TBODY");
         let element_body_tr = document.createElement("TR");
-        element.classList.add("table", "table-striped", "table-hover", "table-borderless", "mb-0");
-        element_head.classList.add("thead-dark");
+        element.classList.add("table", "table-hover", "mb-0");
         element_head.appendChild(element_head_tr);
         element_body.appendChild(element_body_tr);
         element.appendChild(element_head);
         element.appendChild(element_body);
         table_container.appendChild(element);
 
-        for(let column of this.#column)
-        {
+        for(let column of this.#column) {
             let th = document.createElement("TH");
             th.textContent = column.NAME;
             th.setAttribute("style", `width:${column.WIDTH};`);
@@ -268,27 +320,43 @@ class Pyrus {
         th.classList.add("text-center");
         element_head_tr.appendChild(th);
 
+        let img = document.createElement("IMG");
+        img.setAttribute("src",`${window.url__pyrus}${window.folder__pyrus}/${Pyrus.name.toLowerCase()}/puff.svg`);
+        img.setAttribute("style", "filter:invert(1)");
         let td = document.createElement("TD");
         td.setAttribute("colspan", this.#column.length + 1);
-        td.textContent = "- Sin registros -";
+        td.appendChild(img);
         td.classList.add("text-center");
         element_body_tr.appendChild(td);
 
-        window.TableTrFirst = element_body_tr;
+        this.#dataBase(element_body, element_body_tr);
     };
-    table = () => {
-        let table_element = document.getElementsByTagName(`table-pyrus-${this.#entity}`);
-        if(!table_element.length)
-        {
-            table_element = document.createElement(`table-pyrus-${this.#entity}`);
-            table_element.setAttribute("id",`table-pyrus-${this.#entity}`);
-            this.#container.appendChild(table_element);
-            this.#ids.table = `table-pyrus-${this.#entity}`;
-        }
-        else
-            table_element = table_element[0];
-        createClass(`table-pyrus-${this.#entity}`,"display: block;");
-        this.#buildTable(table_element);
+    /**
+     * @property {Object} body
+     * @property {Object} tr_first
+     */
+    #dataBase = (body, tr_first) => {
+        const token = JSON.parse(sessionStorage.token);
+        this.post();
+        Pyrus__connect.get(`${window.url__pyrus}api/${this.#tableDB}`,
+            {
+                header: {
+                    Accept: 'application/json',
+                    'Content-Type': 'application/json; charset=utf-8',
+                    Authorization: `${token.token_type} ${token.access_token}`
+                }
+            })
+        .then(response => {
+            if (response) {
+                if (Object.keys(response).length > 0)
+                    tr_first.remove();
+                else
+                    tr_first.querySelector("td").textContent = "- Sin registros -";
+            }
+        })
+        .catch(error => {
+            console.log(error);
+        });
     };
     /**
      * @param {Object} form_container
@@ -298,10 +366,8 @@ class Pyrus {
     #buildForm = (form_container, name, multiple) => {
         const form = this.#object.FORM === undefined ? null : this.#object.FORM;
         let element_id = Date.now();
-        if(form === null)
-        {
-            for(let property in this.#form)
-            {
+        if (!form) {
+            for (let property in this.#form) {
                 element_id ++;
                 let div_row = document.createElement("DIV");
                 div_row.classList.add("row","justify-content-center");
@@ -312,54 +378,35 @@ class Pyrus {
                 div_col.classList.add("col-12");
                 let names = this.#names(property, name, multiple);
                 let element = this.#suitableItem(this.#form[property], names);
-                if(!!element)
+                if (!!element)
                     div_col.appendChild(element)
                 div_row.appendChild(div_col);
                 form_container.appendChild(div_row);
             }
-        }
-        else
-        {
-            for(let row of form)
-            {
+        } else {
+            for (let row of form) {
                 let div_row = document.createElement("DIV");
                 div_row.classList.add("row","justify-content-center");
                 div_row.setAttribute("id",`${this.#ids.form}-${element_id}`);
                 element_id ++;
                 window.pyrus_elements.push({id:`${this.#ids.form}-${element_id}`,element: div_row});
-                for(let property in row)
-                {
-                    if(this.#form[property] === undefined)
-                    {
+                for (let property in row) {
+                    if (this.#form[property] === undefined) {
                         console.error(`Property "${property}" not found`);
                         break;
                     }
                     let div_col = document.createElement("DIV");
-                    if(!!row[property])
+                    if (!!row[property])
                         div_col.classList.add(...row[property].split(" "));
                     let names = this.#names(property, name, multiple);
                     let element = this.#suitableItem(this.#form[property], names);
-                    if(!!element)
+                    if (!!element)
                         div_col.appendChild(element)
                     div_row.appendChild(div_col);
                 }
                 form_container.appendChild(div_row);
             }
         }
-    };
-    form = (name = null, multiple = false) => {
-        let form_element = document.getElementsByTagName(`form-pyrus-${this.#entity}`);
-        if(!form_element.length)
-        {
-            form_element = document.createElement(`form-pyrus-${this.#entity}`);
-            form_element.setAttribute("id",`form-pyrus-${this.#entity}`);
-            this.#container.appendChild(form_element);
-            this.#ids.form = `form-pyrus-${this.#entity}`;
-        }
-        else
-            form_element = form_element[0];
-        createClass(`form-pyrus-${this.#entity}`,"display: block;");
-        this.#buildForm(form_element, name, multiple);
     };
     /**
      * @param {String} property
@@ -371,14 +418,12 @@ class Pyrus {
         let names = {name:null, id:null};
         names.name = `${this.#entity}_${property}`;
         names.id = `${this.#entity}_${property}`;
-        if(name !== null)
-        {
+        if (name !== null) {
             names.name += `_${name}`;
             names.id += `_${name}`;
         }
-        if(multiple)
-        {
-            if(window[`${this.#entity}_${property}`] === undefined)
+        if (multiple) {
+            if (window[`${this.#entity}_${property}`] === undefined)
                 window[`${this.#entity}_${property}`] = 0;
             window[`${this.#entity}_${property}`] ++;
             names.name += `[]`;
@@ -392,10 +437,8 @@ class Pyrus {
      * @returns {Object}
     */
     #suitableItem = (element, names) => {
-        if(element.VISIBILITY == 'TP_VISIBLE' || element.VISIBILITY == 'TP_VISIBLE_FORM' )
-        {
-            switch(element.TYPE)
-            {
+        if (element.VISIBILITY == 'TP_VISIBLE' || element.VISIBILITY == 'TP_VISIBLE_FORM' ) {
+            switch (element.TYPE) {
                 case "TP_STRING":
                     return this.#input(element, names, "text");
                 case "TP_LINK":
@@ -404,6 +447,8 @@ class Pyrus {
                     return this.#input(element, names, "phone");
                 case "TP_EMAIL":
                     return this.#input(element, names, "email");
+                case "TP_NUMBER":
+                    return this.#inputNumber(element, names);
                 case "TP_DATE":
                     return this.#inputDate(element, names);
                 case "TP_TEXT":
@@ -429,23 +474,20 @@ class Pyrus {
      * @param {JSON}
      */
     #appendLabelHelpFunction = (element, container, object, names, functions = true) => {
-        if(element.LABEL)
-        {
+        if (element.LABEL) {
             let label = document.createElement("LABEL");
             label.htmlFor = names.id;
             label.textContent = element.NAME;
             container.appendChild(label);
         }
         container.appendChild(object);
-        if(element.HELP !== undefined)
-        {
+        if (element.HELP !== undefined) {
             let small = document.createElement("SMALL");
             small.classList.add("form-text","text-muted");
             small.textContent = element.HELP;
             container.appendChild(small);
         }
-        if(element.FUNCTION && functions)
-        {
+        if (element.FUNCTION && functions) {
             for(let _function in element.FUNCTION)
                 object.setAttribute(_function, element.FUNCTION[_function]);
         }
@@ -455,13 +497,13 @@ class Pyrus {
      * @param {JSON} object
      */
     #attrInput = (element, object) => {
-        if(element.CLASS != null)
+        if (element.CLASS != null)
             object.classList.add(...element.CLASS.split(" "));
-        if(element.REQUIRED)
+        if (element.REQUIRED)
             object.required = true;
-        if(element.DISABLED)
+        if (element.DISABLED)
             object.disabled = true;
-        if(element.READONLY)
+        if (element.READONLY)
             object.readOnly = true;
     };
     /**
@@ -474,13 +516,13 @@ class Pyrus {
         let container = document.createElement("DIV");
         container.classList.add("form-group");
         object.setAttribute("type", type);
-        if(element.CLASS === undefined)
+        if (element.CLASS === undefined)
             element.CLASS = "form-control";
         else
             element.CLASS += " form-control";
-        switch ( type ) {
+        switch (type) {
             case "number":
-                object.setAttribute("type", "text");
+                //object.setAttribute("type", "text");
                 element.CLASS += " input-numero text-right";
                 element.PATTERN = "[0-9]";
             break;
@@ -518,11 +560,37 @@ class Pyrus {
      * @param {JSON} element
      * @param {JSON} names
      */
+    #inputNumber = (element, names) => {
+        let object = document.createElement("INPUT");
+        let container = document.createElement("DIV");
+        container.classList.add("form-group");
+        if (element.CLASS === undefined)
+            element.CLASS = "form-control text-right";
+        else
+            element.CLASS += " form-control text-right";
+        this.#attrInput(element, object);
+        if (element.MIN)
+            object.setAttribute("min", element.MIN);
+        if (element.MAX)
+            object.setAttribute("max", element.MAX);
+        if (element.DEFAULT)
+            object.value = element.DEFAULT;
+        object.setAttribute("type", "number");
+        object.setAttribute("aria-label", element.NAME);
+        object.setAttribute("name", names.name);
+        object.setAttribute("id", names.id);
+        this.#appendLabelHelpFunction(element, container, object, names);
+        return container;
+    };
+    /**
+     * @param {JSON} element
+     * @param {JSON} names
+     */
     #inputDate = (element, names) => {
         let object = document.createElement("INPUT");
         let container = document.createElement("DIV");
         container.classList.add("form-group");
-        if(element.CLASS === undefined)
+        if (element.CLASS === undefined)
             element.CLASS = "form-control text-right";
         else
             element.CLASS += " form-control text-right";
@@ -553,7 +621,7 @@ class Pyrus {
         let object = document.createElement("TEXTAREA");
         let container = document.createElement("DIV");
         container.classList.add("form-group");
-        if(element.CLASS === undefined)
+        if (element.CLASS === undefined)
             element.CLASS = "form-control";
         else
             element.CLASS += " form-control";
@@ -629,32 +697,30 @@ class Pyrus {
         let object = document.createElement("SELECT");
         let container = document.createElement("DIV");
         container.classList.add("form-group");
-        if(element.CLASS === undefined)
+        if (element.CLASS === undefined)
             element.CLASS = "form-control";
         else
             element.CLASS += " form-control";
-        if(element.MULTIPLE === undefined)
+        if (element.MULTIPLE === undefined)
             element.MULTIPLE = false;
-        if(element.CLASS != null)
+        if (element.CLASS != null)
             object.classList.add(...element.CLASS.split(" "));
-        if(element.REQUIRED)
+        if (element.REQUIRED)
             object.required = true;
-        if(element.DISABLED)
+        if (element.DISABLED)
             object.disabled = true;
-        if(element.READONLY)
+        if (element.READONLY)
             object.readOnly = true;
         object.setAttribute("name", names.name);
         object.setAttribute("id", names.id);
         object.setAttribute("data-live-search",true);
         object.setAttribute("data-width","100%");
         object.setAttribute("data-container","body")
-        if(element.MULTIPLE)
+        if (element.MULTIPLE)
             object.multiple = true;
         /** OPTIONS */
-        if(element.OPTION)
-        {
-            for(let opt of element.OPTION)
-            {
+        if (element.OPTION) {
+            for (let opt of element.OPTION) {
                 let option = document.createElement("OPTION");
                 option.text = opt._t;
                 option.value = opt._v;
@@ -665,4 +731,32 @@ class Pyrus {
         this.#appendLabelHelpFunction(element, container, object, names);
         return container;
     };
+    table = () => {
+        let table_element = document.querySelector(`table-pyrus-${this.entity}`);
+        if (!table_element) {
+            table_element = document.createElement(`table-pyrus-${this.entity}`);
+            table_element.setAttribute("id",`table-pyrus-${this.entity}`);
+            this.container.appendChild(table_element);
+        }
+        this.ids.table = `table-pyrus-${this.entity}`;
+        createClass(`table-pyrus-${this.entity}`,"display: block;");
+        this.#buildTable(table_element);
+    };
+    form = (name = null, multiple = false) => {
+        let form_element = document.querySelector(`form-pyrus-${this.#entity}`);
+        this.#ids.form = `form-pyrus-${this.#entity}`;
+        if (!form_element) {
+            form_element = document.createElement(`form-pyrus-${this.#entity}`);
+            form_element.setAttribute("id",`form-pyrus-${this.#entity}`);
+            this.#container.appendChild(form_element);
+        }
+        createClass(`form-pyrus-${this.#entity}`,"display: block;");
+        this.#buildForm(form_element, name, multiple);
+    };
 };
+
+Pyrus.prototype.post = function() {
+    const origin = this.method.post;
+    origin.call(this, arguments);
+    console.log(this.element)
+}

@@ -2,6 +2,7 @@ const __types = {
     string: "TP_STRING",
     text: "TP_TEXT",
     link: "TP_LINK",
+    number: "TP_NUMBER",
     phone: "TP_PHONE",
     email: "TP_EMAIL",
     select: "TP_SELECT",
@@ -147,7 +148,7 @@ const __ENTITY = {
         ],
         FUNCTION: {
             image: {
-                onchange: "readURL(this)"
+                change: "readURL(this)"
             }
         },
         EDITOR: {
@@ -157,5 +158,78 @@ const __ENTITY = {
                 height: '150px'
             }
         }
+    },
+
+    client: {
+        NAME: "Client",
+        TABLE: "personas",
+        ATTR: {
+            id: {
+                ... property_id
+            },
+            name: {
+                ... property_common,
+                ELEMENT: [__types.string,__visibilities.visible],
+                NAME: "Nombre",
+                LABEL: true
+            },
+            last_name: {
+                ... property_common,
+                ELEMENT: [__types.string,__visibilities.visible],
+                NAME: "Apellido",
+                LABEL: true
+            },
+            email: {
+                ... property_common,
+                ELEMENT: [__types.email,__visibilities.visible],
+                NAME: "Email",
+                LABEL: true
+            },
+            number: {
+                ... property_common,
+                ELEMENT: [__types.number,__visibilities.visible],
+                NAME: "Nro. de agendas",
+                LABEL: true,
+                MIN: 1,
+                MAX: 10,
+                DEFAULT: 1
+            },
+            password: {
+                ... property_common,
+                ELEMENT: [__types.password,__visibilities.visible],
+                NAME: "Contraseña",
+                LABEL: true
+            }
+        },
+        COLUMN: {
+            last_name: {
+                WIDTH: "150px"
+            },
+            name: {
+                WIDTH: "100px"
+            },
+            email: {
+                WIDTH: "auto"
+            },
+            number: {
+                WIDTH: "200px"
+            },
+            password: {
+                WIDTH: "100px"
+            }
+        },
+        FORM: [
+            {
+                name: "col-12 col-sm-6",
+                last_name: "col-12 col-sm-6"
+            },
+            {
+                number: "col-12 col-sm-6",
+                password: "col-12 col-sm-6"
+            },
+            {
+                email: "col-12"
+            }
+        ]
     }
 };
